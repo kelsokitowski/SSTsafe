@@ -26,8 +26,8 @@ echo "========================================="
 
 # Compiler settings
 FC=mpif90
-FFLAGS="-O3 -DkLength=$kLength"
-FFLAGS_DEBUG="-g -O0 -DkLength=$kLength -fcheck=all -fbacktrace"
+FFLAGS="-O3 -DKLENGTH_SIZE=$kLength"
+FFLAGS_DEBUG="-g -O0 -DKLENGTH_SIZE=$kLength -fcheck=all -fbacktrace"
 
 # Choose compilation mode (comment/uncomment as needed)
 MODE="optimized"

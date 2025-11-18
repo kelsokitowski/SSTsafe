@@ -100,9 +100,9 @@ export kLength=200
 
 ## How It Works
 
-### 1. Preprocessor Defines kLength
+### 1. Preprocessor Defines KLENGTH_SIZE
 
-The compilation script passes `-DkLength=$kLength` to the compiler, which defines it as a preprocessor macro.
+The compilation script passes `-DKLENGTH_SIZE=$kLength` to the compiler, which defines it as a preprocessor macro.
 
 ### 2. array_dimensions Module
 
@@ -110,7 +110,7 @@ The `array_dimensions.F90` module converts the preprocessor macro to a Fortran p
 
 ```fortran
 module array_dimensions
-    integer, parameter :: KLENGTH_PARAM = kLength
+    integer, parameter :: KLENGTH_PARAM = KLENGTH_SIZE
 end module
 ```
 
@@ -143,7 +143,7 @@ MODE="optimized" ./compile_with_klength.sh
 ```
 
 Creates: `mainSSTProgram.x`
-Flags: `-O3 -DkLength=$kLength`
+Flags: `-O3 -DKLENGTH_SIZE=$kLength`
 
 ### Debug Build
 
@@ -153,7 +153,7 @@ MODE="debug"
 ```
 
 Creates: `mainSST_debug.x`
-Flags: `-g -O0 -DkLength=$kLength -fcheck=all -fbacktrace`
+Flags: `-g -O0 -DKLENGTH_SIZE=$kLength -fcheck=all -fbacktrace`
 
 ## Files Modified
 
@@ -169,7 +169,7 @@ The following files were modified to use fixed arrays:
 
 ## Troubleshooting
 
-### Error: "kLength must be defined at compile time"
+### Error: "KLENGTH_SIZE must be defined at compile time"
 
 You forgot to set the kLength environment variable before compiling.
 
