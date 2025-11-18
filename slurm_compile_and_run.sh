@@ -41,9 +41,20 @@ echo "kLength: $kLength"
 echo "========================================="
 echo ""
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
 # Compile the program
 echo "Step 1: Compiling program with kLength=$kLength..."
-./compile_with_klength.sh
+echo "Current directory: $(pwd)"
+
+# Try using the simpler compile.sh first, fallback to compile_with_klength.sh
+if [ -f compile.sh ]; then
+    bash compile.sh
+else
+    bash compile_with_klength.sh
+fi
 
 if [ $? -ne 0 ]; then
     echo "Compilation failed! Exiting."

@@ -169,6 +169,21 @@ The following files were modified to use fixed arrays:
 
 ## Troubleshooting
 
+### Error: "Permission denied" when running scripts
+
+If you get permission denied errors in SLURM, the scripts are being called with `bash` explicitly, but there may be line ending issues or path issues.
+
+**Solution:**
+```bash
+# Use the simpler compile.sh script
+export kLength=144
+bash compile.sh
+
+# Or fix line endings
+sed -i 's/\r$//' compile_with_klength.sh
+sed -i 's/\r$//' slurm_compile_and_run.sh
+```
+
 ### Error: "kLength must be defined at compile time"
 
 You forgot to set the kLength environment variable before compiling.
@@ -176,7 +191,9 @@ You forgot to set the kLength environment variable before compiling.
 **Solution:**
 ```bash
 export kLength=144
-./compile_with_klength.sh
+bash compile.sh
+# or
+bash compile_with_klength.sh
 ```
 
 ### Error: "kLength mismatch - recompile with correct kLength"
