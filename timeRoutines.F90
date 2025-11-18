@@ -1,8 +1,8 @@
 module timeRoutines
+  use mpi
   use array_dimensions
   use EDQNMstratifiedModules
     implicit none
-    include 'mpif.h'
     private
     public :: run_timeloop_mpi
 

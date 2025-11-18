@@ -1,7 +1,7 @@
 module data_loader_all
+    use mpi
     use array_dimensions
     implicit none
-    include 'mpif.h'
     private
     public :: load_checkpoint_binary, load_weightStuff_binary, load_ETDRKcoeffs_binary_named, load_mat_files
 
