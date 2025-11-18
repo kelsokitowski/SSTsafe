@@ -189,12 +189,13 @@ contains
        call gatherv6(localN1,localN2,localN3,localN4,localN5,localN6, Nv_1,Nv_2,Nv_3,Nv_4,Nv_5,Nv_6, &
             recvcounts, displs, comm)
        call MPI_Barrier(comm, ierr)
-       if (any(Nv_1 /= Nv_1)) then
-          print *, "NaN detected in Nv_1; first index = ", minloc(Nv_1, MASK=(Nv_1 /= Nv_1))
-          stop
-       end if
        !======= get a_*
        if (rank==root) then
+          ! Check for NaN on root rank where Nv_* are valid after gatherv6
+          if (any(Nv_1 /= Nv_1)) then
+             print *, "NaN detected in Nv_1; first index = ", minloc(Nv_1, MASK=(Nv_1 /= Nv_1))
+             stop
+          end if
 
 
           a_1 = EX2_1*v_1 + Q_1*Nv_1;  !first substep solution E.
@@ -223,9 +224,6 @@ contains
           endif
           if (any(v_1 /= v_1)) then
              print *, 'v_1 nan'
-          endif
-          if (any(Nv_1 /= Nv_1)) then
-             print *, 'Nv_1 nan'
           endif
        end if
 
