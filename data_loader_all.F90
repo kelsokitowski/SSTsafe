@@ -1,7 +1,7 @@
 module data_loader_all
-    use mpi
     use array_dimensions
     implicit none
+    include 'mpif.h'
     private
     public :: load_checkpoint_binary, load_weightStuff_binary, load_ETDRKcoeffs_binary_named, load_mat_files
 
@@ -151,7 +151,6 @@ subroutine load_ETDRKcoeffs_binary_named( bf, kLength,  &
     EX1_6,EX2_6,Q_6,f1_6,f2_6,f3_6, &
     comm )
 
-    use mpi
     implicit none
 
     ! Inputs
@@ -269,7 +268,6 @@ subroutine load_mat_files(bf, kLength, kVals, v_1,v_2,v_3,v_4,v_5,v_6, t, tStar,
                           EX1_4,EX2_4,Q_4,f1_4,f2_4,f3_4, &
                           EX1_5,EX2_5,Q_5,f1_5,f2_5,f3_5, &
                           EX1_6,EX2_6,Q_6,f1_6,f2_6,f3_6,ExtForcing)
-  use mpi
   implicit none
   real(dp), intent(in) :: bf
   integer :: comm, ierr, rank, kLength_file

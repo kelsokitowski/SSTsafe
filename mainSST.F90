@@ -1,5 +1,4 @@
 PROGRAM mainSST
-  use mpi
   use array_dimensions
   use integrationModules
   use EDQNMstratifiedModules
@@ -8,7 +7,7 @@ PROGRAM mainSST
   use getForcing
   use timeRoutines
   implicit none
-  !include 'mpif.h'
+  include 'mpif.h'
   !use, intrinsic :: iso_fortran_env, only: sp=>real32, dp=>real64
 
   integer :: rank, size_Of_Cluster, ierr, passiveICtrigger, SSflag

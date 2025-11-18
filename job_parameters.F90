@@ -1,6 +1,6 @@
 module job_parameters
-    use mpi
     implicit none
+    include 'mpif.h'
     private
     public :: initialize_parameters_mpi
     integer, parameter :: dp = 8
