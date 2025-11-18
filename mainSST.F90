@@ -1,5 +1,6 @@
 PROGRAM mainSST
   use mpi
+  use array_dimensions
   use integrationModules
   use EDQNMstratifiedModules
   use job_parameters
@@ -12,7 +13,6 @@ PROGRAM mainSST
 
   integer :: rank, size_Of_Cluster, ierr, passiveICtrigger, SSflag
   integer :: root = 0
-  integer, parameter :: dp = 8
   !=============================================================
     !  MPI and basic parameters
     !=============================================================
@@ -20,50 +20,48 @@ PROGRAM mainSST
     real(dp) :: bf, t, tStar
 
     !=============================================================
-    !  Checkpoint arrays (1D)
+    !  Checkpoint arrays (1D) - Fixed size using KLENGTH_PARAM
     !=============================================================
-    real(dp), allocatable :: v_1(:), v_2(:), v_3(:)
-    real(dp), allocatable :: v_4(:), v_5(:), v_6(:)
+    real(dp) :: v_1(KLENGTH_PARAM), v_2(KLENGTH_PARAM), v_3(KLENGTH_PARAM)
+    real(dp) :: v_4(KLENGTH_PARAM), v_5(KLENGTH_PARAM), v_6(KLENGTH_PARAM)
 
     !=============================================================
-    !  WeightStuff arrays (3D)
+    !  WeightStuff arrays (3D) - Fixed size using KLENGTH_PARAM
     !=============================================================
-    real(dp), allocatable :: weight(:,:,:)
-    integer,  allocatable :: triadFlag(:,:,:)
-    integer,  allocatable :: outsideCutCell(:,:,:)
-    integer,  allocatable :: insideCutCell(:,:,:)
-    real(dp), allocatable :: CxVals(:,:,:)
-    real(dp), allocatable :: CyVals(:,:,:)
-    integer,  allocatable :: Q11(:,:,:,:)
+    real(dp) :: weight(KLENGTH_PARAM,KLENGTH_PARAM,KLENGTH_PARAM)
+    integer  :: triadFlag(KLENGTH_PARAM,KLENGTH_PARAM,KLENGTH_PARAM)
+    integer  :: outsideCutCell(KLENGTH_PARAM,KLENGTH_PARAM,KLENGTH_PARAM)
+    integer  :: insideCutCell(KLENGTH_PARAM,KLENGTH_PARAM,KLENGTH_PARAM)
+    real(dp) :: CxVals(KLENGTH_PARAM,KLENGTH_PARAM,KLENGTH_PARAM)
+    real(dp) :: CyVals(KLENGTH_PARAM,KLENGTH_PARAM,KLENGTH_PARAM)
+    integer  :: Q11(2,KLENGTH_PARAM,KLENGTH_PARAM,KLENGTH_PARAM)
 
     !=============================================================
-    !  ETDRK coefficient arrays (1D)
+    !  ETDRK coefficient arrays (1D) - Fixed size using KLENGTH_PARAM
     !=============================================================
-    real(dp), allocatable :: &
-        EX1_1(:), EX2_1(:), Q_1(:), f1_1(:), f2_1(:), f3_1(:), &
-        EX1_2(:), EX2_2(:), Q_2(:), f1_2(:), f2_2(:), f3_2(:), &
-        EX1_3(:), EX2_3(:), Q_3(:), f1_3(:), f2_3(:), f3_3(:), &
-        EX1_4(:), EX2_4(:), Q_4(:), f1_4(:), f2_4(:), f3_4(:), &
-        EX1_5(:), EX2_5(:), Q_5(:), f1_5(:), f2_5(:), f3_5(:), &
-        EX1_6(:), EX2_6(:), Q_6(:), f1_6(:), f2_6(:), f3_6(:)
+    real(dp) :: &
+        EX1_1(KLENGTH_PARAM), EX2_1(KLENGTH_PARAM), Q_1(KLENGTH_PARAM), f1_1(KLENGTH_PARAM), f2_1(KLENGTH_PARAM), f3_1(KLENGTH_PARAM), &
+        EX1_2(KLENGTH_PARAM), EX2_2(KLENGTH_PARAM), Q_2(KLENGTH_PARAM), f1_2(KLENGTH_PARAM), f2_2(KLENGTH_PARAM), f3_2(KLENGTH_PARAM), &
+        EX1_3(KLENGTH_PARAM), EX2_3(KLENGTH_PARAM), Q_3(KLENGTH_PARAM), f1_3(KLENGTH_PARAM), f2_3(KLENGTH_PARAM), f3_3(KLENGTH_PARAM), &
+        EX1_4(KLENGTH_PARAM), EX2_4(KLENGTH_PARAM), Q_4(KLENGTH_PARAM), f1_4(KLENGTH_PARAM), f2_4(KLENGTH_PARAM), f3_4(KLENGTH_PARAM), &
+        EX1_5(KLENGTH_PARAM), EX2_5(KLENGTH_PARAM), Q_5(KLENGTH_PARAM), f1_5(KLENGTH_PARAM), f2_5(KLENGTH_PARAM), f3_5(KLENGTH_PARAM), &
+        EX1_6(KLENGTH_PARAM), EX2_6(KLENGTH_PARAM), Q_6(KLENGTH_PARAM), f1_6(KLENGTH_PARAM), f2_6(KLENGTH_PARAM), f3_6(KLENGTH_PARAM)
 
     !=============================================================
-!  Dynamically sized solver/state arrays (allocatable)
-!  These are allocated after kLength is known
+!  Solver/state arrays - Fixed size using KLENGTH_PARAM
 !=============================================================
-real(dp), allocatable :: kVals(:)
-real(dp), allocatable :: dt(:)
-real(dp), allocatable :: E(:), EHdir(:), EHdirNew(:), EHpol(:), EHpolNew(:)
-real(dp), allocatable :: ET(:), Enew(:), ETH(:), ETHnew(:), ETnew(:)
-real(dp), allocatable :: F(:), Fnew(:)
-real(dp), allocatable :: HDIR(:), HPOL(:), HT(:)
-real(dp), allocatable :: mu(:), mu1(:), mu3(:)
-real(dp), allocatable :: Einitial(:), forcing(:), fl(:), fEta(:)
-real(dp), allocatable :: RHSeqn1(:), RHSeqn2(:), RHSeqn3(:), RHSeqn4(:), RHSeqn5(:), RHSeqn6(:)
-real(dp), allocatable :: localRHSeqn1(:), localRHSeqn2(:), localRHSeqn3(:), localRHSeqn4(:), localRHSeqn5(:), localRHSeqn6(:)
-real(dp), allocatable :: duu1(:), duu2(:), duu3(:), duu4(:), duu5(:), duu6(:)
-real(dp), allocatable :: ExtForcing(:)
-real(dp), allocatable :: Estored(:,:)
+real(dp) :: kVals(KLENGTH_PARAM)
+real(dp) :: dt(4)
+real(dp) :: E(KLENGTH_PARAM), EHdir(KLENGTH_PARAM), EHdirNew(KLENGTH_PARAM), EHpol(KLENGTH_PARAM), EHpolNew(KLENGTH_PARAM)
+real(dp) :: ET(KLENGTH_PARAM), Enew(KLENGTH_PARAM), ETH(KLENGTH_PARAM), ETHnew(KLENGTH_PARAM), ETnew(KLENGTH_PARAM)
+real(dp) :: F(KLENGTH_PARAM), Fnew(KLENGTH_PARAM)
+real(dp) :: HDIR(KLENGTH_PARAM), HPOL(KLENGTH_PARAM), HT(KLENGTH_PARAM)
+real(dp) :: mu(KLENGTH_PARAM), mu1(KLENGTH_PARAM), mu3(KLENGTH_PARAM)
+real(dp) :: Einitial(KLENGTH_PARAM), forcing(6), fl(KLENGTH_PARAM), fEta(KLENGTH_PARAM)
+real(dp) :: RHSeqn1(KLENGTH_PARAM), RHSeqn2(KLENGTH_PARAM), RHSeqn3(KLENGTH_PARAM), RHSeqn4(KLENGTH_PARAM), RHSeqn5(KLENGTH_PARAM), RHSeqn6(KLENGTH_PARAM)
+real(dp) :: localRHSeqn1(KLENGTH_PARAM), localRHSeqn2(KLENGTH_PARAM), localRHSeqn3(KLENGTH_PARAM), localRHSeqn4(KLENGTH_PARAM), localRHSeqn5(KLENGTH_PARAM), localRHSeqn6(KLENGTH_PARAM)
+real(dp) :: duu1(KLENGTH_PARAM), duu2(KLENGTH_PARAM), duu3(KLENGTH_PARAM), duu4(KLENGTH_PARAM), duu5(KLENGTH_PARAM), duu6(KLENGTH_PARAM)
+real(dp) :: ExtForcing(KLENGTH_PARAM)
 
 
 ! Scalars (not allocatable)
@@ -84,7 +82,8 @@ integer :: comm = MPI_COMM_WORLD
   call MPI_COMM_SIZE(MPI_COMM_WORLD, size_Of_Cluster, ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
 
-
+  ! Set kLength from compile-time parameter
+  kLength = KLENGTH_PARAM
 
   !YOU WILL NEED TO ADJUST LENGTH OF ARRAYS TO AVOID ALLOCATE FOR NOW. AFTER Y LOOP NO FURTHER EDITS NEEDED
   termFlag = 0;
@@ -109,28 +108,9 @@ integer :: comm = MPI_COMM_WORLD
         print *, "Initialization complete: bf =", bf, ", Pr =", Pr,' kLength =',kLength
     endif
 !=============================================================
-!  Allocate solver arrays based on kLength
+!  Arrays are now fixed-size (no allocation needed)
 !=============================================================
-if (.not. allocated(kVals)) then
-    allocate(kVals(kLength))
-    end if
-    allocate(dt(4))
-    allocate(E(kLength), EHdir(kLength), EHdirNew(kLength))
-    allocate(EHpol(kLength), EHpolNew(kLength))
-    allocate(ET(kLength), Enew(kLength), ETH(kLength), ETHnew(kLength), ETnew(kLength))
-    allocate(F(kLength), Fnew(kLength))
-    allocate(HDIR(kLength), HPOL(kLength), HT(kLength))
-    allocate(mu(kLength), mu1(kLength), mu3(kLength))
-    allocate(Einitial(kLength), forcing(6), fl(kLength), fEta(kLength))
-    allocate(RHSeqn1(kLength), RHSeqn2(kLength), RHSeqn3(kLength), RHSeqn4(kLength), RHSeqn5(kLength), RHSeqn6(kLength))
-    allocate(localRHSeqn1(kLength), localRHSeqn2(kLength), localRHSeqn3(kLength), localRHSeqn4(kLength),&
-            localRHSeqn5(kLength), localRHSeqn6(kLength))
-    allocate(duu1(kLength), duu2(kLength), duu3(kLength), duu4(kLength), duu5(kLength), duu6(kLength))
-
-
-   if (.not. allocated(ExtForcing)) allocate(ExtForcing(kLength))
-
-! if not allocated
+    ! No allocation needed - arrays are declared with fixed size KLENGTH_PARAM
 
 
  ! if ( rank == 0 ) then
@@ -278,22 +258,7 @@ print *, kVals(1)
     ySquaredAvg = 1.0d0
     nPrint = 1
 
-
-
-
-        !allocate(v_1(kLength),v_2(kLength),v_3(kLength),v_4(kLength),v_5(kLength),v_6(kLength))
-        !allocate(weight(kLength,kLength,kLength))
-        !allocate(triadFlag(kLength,kLength,kLength), outsideCutCell(kLength,kLength,kLength), insideCutCell(kLength,kLength,kLength))
-        !allocate(CxVals(kLength,kLength,kLength), CyVals(kLength,kLength,kLength))
-        !allocate(Q11(2,kLength,kLength,kLength))
-
-        !allocate(EX1_1(kLength),EX2_1(kLength),Q_1(kLength),f1_1(kLength),f2_1(kLength),f3_1(kLength))
-        !allocate(EX1_2(kLength),EX2_2(kLength),Q_2(kLength),f1_2(kLength),f2_2(kLength),f3_2(kLength))
-        !allocate(EX1_3(kLength),EX2_3(kLength),Q_3(kLength),f1_3(kLength),f2_3(kLength),f3_3(kLength))
-        !allocate(EX1_4(kLength),EX2_4(kLength),Q_4(kLength),f1_4(kLength),f2_4(kLength),f3_4(kLength))
-        !allocate(EX1_5(kLength),EX2_5(kLength),Q_5(kLength),f1_5(kLength),f2_5(kLength),f3_5(kLength))
-        !allocate(EX1_6(kLength),EX2_6(kLength),Q_6(kLength),f1_6(kLength),f2_6(kLength),f3_6(kLength))
-
+    ! All arrays are now fixed-size (no allocation needed)
 
     ! Broadcast large arrays to all ranks
     call MPI_Bcast(kVals, kLength, MPI_DOUBLE_PRECISION, root, comm, ierr)

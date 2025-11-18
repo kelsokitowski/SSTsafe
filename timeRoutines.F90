@@ -1,11 +1,10 @@
 module timeRoutines
+  use array_dimensions
   use EDQNMstratifiedModules
   use mpi
     implicit none
     private
     public :: run_timeloop_mpi
-
-    integer, parameter :: dp = 8
 
 contains
 
@@ -62,19 +61,19 @@ contains
 
     ! distributed indexing
     integer :: local_kLength, local_kStart, local_kEnd, remainder, kj, kjl, i
-    integer, allocatable :: recvcounts(:), displs(:)
+    integer :: recvcounts(1024), displs(1024)  ! Max MPI ranks assumed = 1024
 
-    ! fields/scratch
-    real(dp), allocatable :: E(:),EHdir(:),EHpol(:),ET(:),ETH(:),F(:)
-    real(dp), allocatable :: Enew(:),EHdirNew(:),EHpolNew(:),ETnew(:),ETHnew(:),Fnew(:)
-    real(dp), allocatable :: mu(:), mu1(:), mu3(:), HDIR(:), HPOL(:), HT(:)
-    real(dp), allocatable :: Nv_1(:),Nv_2(:),Nv_3(:),Nv_4(:),Nv_5(:),Nv_6(:)
-    real(dp), allocatable :: Na_1(:),Na_2(:),Na_3(:),Na_4(:),Na_5(:),Na_6(:)
-    real(dp), allocatable :: Nb_1(:),Nb_2(:),Nb_3(:),Nb_4(:),Nb_5(:),Nb_6(:)
-    real(dp), allocatable :: Nc_1(:),Nc_2(:),Nc_3(:),Nc_4(:),Nc_5(:),Nc_6(:)
-    real(dp), allocatable :: a_1(:),a_2(:),a_3(:),a_4(:),a_5(:),a_6(:)
-    real(dp), allocatable :: c_1(:),c_2(:),c_3(:),c_4(:),c_5(:),c_6(:)
-    real(dp), allocatable :: localN1(:),localN2(:),localN3(:),localN4(:),localN5(:),localN6(:)
+    ! fields/scratch - Fixed size arrays
+    real(dp) :: E(KLENGTH_PARAM),EHdir(KLENGTH_PARAM),EHpol(KLENGTH_PARAM),ET(KLENGTH_PARAM),ETH(KLENGTH_PARAM),F(KLENGTH_PARAM)
+    real(dp) :: Enew(KLENGTH_PARAM),EHdirNew(KLENGTH_PARAM),EHpolNew(KLENGTH_PARAM),ETnew(KLENGTH_PARAM),ETHnew(KLENGTH_PARAM),Fnew(KLENGTH_PARAM)
+    real(dp) :: mu(KLENGTH_PARAM), mu1(KLENGTH_PARAM), mu3(KLENGTH_PARAM), HDIR(KLENGTH_PARAM), HPOL(KLENGTH_PARAM), HT(KLENGTH_PARAM)
+    real(dp) :: Nv_1(KLENGTH_PARAM),Nv_2(KLENGTH_PARAM),Nv_3(KLENGTH_PARAM),Nv_4(KLENGTH_PARAM),Nv_5(KLENGTH_PARAM),Nv_6(KLENGTH_PARAM)
+    real(dp) :: Na_1(KLENGTH_PARAM),Na_2(KLENGTH_PARAM),Na_3(KLENGTH_PARAM),Na_4(KLENGTH_PARAM),Na_5(KLENGTH_PARAM),Na_6(KLENGTH_PARAM)
+    real(dp) :: Nb_1(KLENGTH_PARAM),Nb_2(KLENGTH_PARAM),Nb_3(KLENGTH_PARAM),Nb_4(KLENGTH_PARAM),Nb_5(KLENGTH_PARAM),Nb_6(KLENGTH_PARAM)
+    real(dp) :: Nc_1(KLENGTH_PARAM),Nc_2(KLENGTH_PARAM),Nc_3(KLENGTH_PARAM),Nc_4(KLENGTH_PARAM),Nc_5(KLENGTH_PARAM),Nc_6(KLENGTH_PARAM)
+    real(dp) :: a_1(KLENGTH_PARAM),a_2(KLENGTH_PARAM),a_3(KLENGTH_PARAM),a_4(KLENGTH_PARAM),a_5(KLENGTH_PARAM),a_6(KLENGTH_PARAM)
+    real(dp) :: c_1(KLENGTH_PARAM),c_2(KLENGTH_PARAM),c_3(KLENGTH_PARAM),c_4(KLENGTH_PARAM),c_5(KLENGTH_PARAM),c_6(KLENGTH_PARAM)
+    real(dp) :: localN1(KLENGTH_PARAM),localN2(KLENGTH_PARAM),localN3(KLENGTH_PARAM),localN4(KLENGTH_PARAM),localN5(KLENGTH_PARAM),localN6(KLENGTH_PARAM)
     real(dp) :: forcing(6)
 
     ! diagnostics
@@ -86,12 +85,10 @@ contains
     call MPI_Comm_size(comm, nprocs, ierr)
     kLength = size(kVals)
 
-    ! Initialize spectral fields from v_* (your MATLAB preamble)
-    allocate(E(kLength),EHdir(kLength),EHpol(kLength),ET(kLength),ETH(kLength),F(kLength))
+    ! Initialize spectral fields from v_* (your MATLAB preamble) - No allocation needed
     E    = v_1; EHdir = v_2; EHpol = v_3
     ET   = v_4; ETH   = v_5; F     = v_6
 
-    allocate(Enew(kLength),EHdirNew(kLength),EHpolNew(kLength),ETnew(kLength),ETHnew(kLength),Fnew(kLength))
     Enew = v_1; EHdirNew = v_2; EHpolNew = v_3; ETnew = v_4; ETHnew = v_5; Fnew = v_6
 
     ! Time scales & storage cadence (match MATLAB semantics)
@@ -112,15 +109,7 @@ contains
     call MPI_Bcast(TauL0, 1, MPI_DOUBLE_PRECISION, root, comm, ierr)
     call MPI_Bcast(t0,     1, MPI_DOUBLE_PRECISION, root, comm, ierr)
 
-    ! Allocate per-step helpers
-    allocate(mu(kLength), mu1(kLength), mu3(kLength))
-    allocate(HDIR(kLength), HPOL(kLength), HT(kLength))
-    allocate(Nv_1(kLength),Nv_2(kLength),Nv_3(kLength),Nv_4(kLength),Nv_5(kLength),Nv_6(kLength))
-    allocate(Na_1(kLength),Na_2(kLength),Na_3(kLength),Na_4(kLength),Na_5(kLength),Na_6(kLength))
-    allocate(Nb_1(kLength),Nb_2(kLength),Nb_3(kLength),Nb_4(kLength),Nb_5(kLength),Nb_6(kLength))
-    allocate(Nc_1(kLength),Nc_2(kLength),Nc_3(kLength),Nc_4(kLength),Nc_5(kLength),Nc_6(kLength))
-    allocate(c_1(kLength),c_2(kLength),c_3(kLength),c_4(kLength),c_5(kLength),c_6(kLength))
-    allocate(a_1(kLength),a_2(kLength),a_3(kLength),a_4(kLength),a_5(kLength),a_6(kLength))
+    ! Arrays are fixed-size, no allocation needed
 
     ! Uneven block distribution
     local_kLength = kLength / nprocs
@@ -132,9 +121,7 @@ contains
        local_kStart  = remainder * (local_kLength + 1) + (rank - remainder) * local_kLength + 1
     end if
     local_kEnd = local_kStart + local_kLength - 1
-    allocate(localN1(local_kLength),localN2(local_kLength),localN3(local_kLength), &
-         localN4(local_kLength),localN5(local_kLength),localN6(local_kLength))
-    allocate(recvcounts(nprocs), displs(nprocs))
+    ! Arrays are fixed-size, no allocation needed
     call MPI_Gather(local_kLength,1,MPI_INTEGER,recvcounts,1,MPI_INTEGER,root,comm,ierr)
     if (rank==root) then
        displs(1)=0
@@ -378,15 +365,7 @@ contains
     end do
 
     !==================== cleanup ====================
-    deallocate(E,EHdir,EHpol,ET,ETH,F)
-    deallocate(Enew,EHdirNew,EHpolNew,ETnew,ETHnew,Fnew)
-    deallocate(mu,mu1,mu3,HDIR,HPOL,HT)
-    deallocate(Nv_1,Nv_2,Nv_3,Nv_4,Nv_5,Nv_6)
-    deallocate(Na_1,Na_2,Na_3,Na_4,Na_5,Na_6)
-    deallocate(Nb_1,Nb_2,Nb_3,Nb_4,Nb_5,Nb_6)
-    deallocate(Nc_1,Nc_2,Nc_3,Nc_4,Nc_5,Nc_6)
-    deallocate(localN1,localN2,localN3,localN4,localN5,localN6)
-    deallocate(recvcounts, displs)
+    ! Arrays are fixed-size, no deallocation needed
 
   contains
     subroutine bcast_state(HPOL,HDIR,HT,E,F,ET,mu1,mu3,tval,comm_)
