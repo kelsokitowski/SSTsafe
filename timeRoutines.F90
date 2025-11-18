@@ -229,6 +229,8 @@ contains
           endif
        end if
 
+       ! Broadcast a_* arrays computed on root to all ranks
+       call bcast6(a_1,a_2,a_3,a_4,a_5,a_6,comm)
 
        call bcast6(Enew,EHdirNew,EHpolNew,ETnew,ETHnew,Fnew,comm)
 
