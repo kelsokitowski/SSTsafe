@@ -1,4 +1,5 @@
 module EDQNMstratifiedModules
+  use array_dimensions
   use integrationModules
   use kernel_interp
   implicit none
@@ -54,7 +55,7 @@ subroutine TwoD_MidpointTest(N,nu,D,kj,k,pVals,HPOL,HDIR,HT,E,F,ET,mu1,mu3,t, &
     double precision :: phi33
     integer :: kLength, pj, qj
     double precision :: p, q, x, y, z
-    double precision, dimension(:), allocatable :: E0, E0T, EF
+    double precision :: E0(KLENGTH_PARAM), E0T(KLENGTH_PARAM), EF(KLENGTH_PARAM)
 
     ! Kernel variables
     double precision :: kernel1, kernel4
@@ -77,11 +78,7 @@ subroutine TwoD_MidpointTest(N,nu,D,kj,k,pVals,HPOL,HDIR,HT,E,F,ET,mu1,mu3,t, &
 
     kLength = size(pVals)
 
-    ! Allocate and compute E0, E0T, EF
-    allocate(E0(kLength))
-    allocate(E0T(kLength))
-    allocate(EF(kLength))
-
+    ! Compute E0, E0T, EF (arrays are fixed-size, no allocation needed)
     E0 = (E / (pVals**2.)) / (4.0d0 * acos(-1.0d0))
     E0T = (ET / (pVals**2.)) / (4.0d0 * acos(-1.0d0))
     EF = (F / (pVals**2.)) / (4.0d0 * acos(-1.0d0))
@@ -328,7 +325,7 @@ subroutine TwoD_MidpointTest(N,nu,D,kj,k,pVals,HPOL,HDIR,HT,E,F,ET,mu1,mu3,t, &
 !!$       stop
 !!$       endif
 
-    deallocate(E0, E0T, EF)
+    ! Arrays are fixed-size, no deallocation needed
 end subroutine TwoD_MidpointTest
 
 
@@ -340,22 +337,19 @@ end subroutine TwoD_MidpointTest
     subroutine getMu(E,kvals,muInt)
     double precision, intent(in) :: E(:), kvals(:)
     double precision, intent(out) :: muInt(:)
-    double precision, allocatable :: df(:), partialSums(:),xVals(:)
+    double precision :: df(KLENGTH_PARAM+1), partialSums(KLENGTH_PARAM), xVals(KLENGTH_PARAM+1)
     integer :: n
 
     n = size(E)
 
-    allocate(df(n+1))
-    allocate(xVals(n+1))
-    allocate(partialSums(n))
-
+    ! Arrays are fixed-size, no allocation needed
     df(1) = 0.0
-    df(2:) = (kvals**2.) * E
+    df(2:n+1) = (kvals**2.) * E
     xVals(1) = 0.0
-    xVals(2:) = kVals
-    call cumTrapz(xVals, df, partialSums)
+    xVals(2:n+1) = kVals
+    call cumTrapz(xVals(1:n+1), df(1:n+1), partialSums(1:n))
 
-    muInt = sqrt( partialSums )
+    muInt = sqrt( partialSums(1:n) )
 end subroutine getMu
 
 

@@ -1,9 +1,9 @@
 module data_loader_all
     use mpi
+    use array_dimensions
     implicit none
     private
     public :: load_checkpoint_binary, load_weightStuff_binary, load_ETDRKcoeffs_binary_named, load_mat_files
-    integer, parameter :: dp = 8
 
 contains
 !======================================================================
@@ -13,9 +13,9 @@ subroutine load_checkpoint_binary(bf, v_1,v_2,v_3,v_4,v_5,v_6,t,tStar,counter,kL
     real(dp), intent(in) :: bf
     integer,  intent(in) :: comm
     integer,  intent(out) :: kLength, counter
-    real(dp), allocatable, intent(out) :: v_1(:),v_2(:),v_3(:),v_4(:),v_5(:),v_6(:)
+    real(dp), intent(out) :: v_1(:),v_2(:),v_3(:),v_4(:),v_5(:),v_6(:)
     real(dp), intent(out) :: t,tStar
-    integer :: rank,ierr,ios
+    integer :: rank,ierr,ios,kLength_file
     real(dp) :: counter_dbl
     character(len=256) :: fname,dirname
     character(len=64) :: bfstr
@@ -33,14 +33,18 @@ subroutine load_checkpoint_binary(bf, v_1,v_2,v_3,v_4,v_5,v_6,t,tStar,counter,kL
         open(10,file=fname,form='unformatted',access='stream',status='old',iostat=ios)
         if (ios/=0) stop 'Error opening checkpoint file.'
 
-        ! First thing in file = kLength
-        read(10) kLength
+        ! First thing in file = kLength - verify it matches compiled value
+        read(10) kLength_file
+        if (kLength_file /= KLENGTH_PARAM) then
+            print *, 'ERROR: File kLength=', kLength_file, ' does not match compiled KLENGTH_PARAM=', KLENGTH_PARAM
+            stop 'kLength mismatch - recompile with correct kLength'
+        end if
+        kLength = KLENGTH_PARAM
     end if
 
     call MPI_Bcast(kLength,1,MPI_INTEGER,0,comm,ierr)
 
-    ! Allocate output arrays
-    allocate(v_1(kLength),v_2(kLength),v_3(kLength),v_4(kLength),v_5(kLength),v_6(kLength))
+    ! Arrays are fixed-size, no allocation needed
 
     if (rank==0) then
         ! Read exactly the expected number of elements
@@ -77,9 +81,9 @@ subroutine load_weightStuff_binary(bf,kLength,weight,triadFlag,outsideCutCell,in
     real(dp),intent(in)::bf
     integer,intent(in)::comm
     integer,intent(out)::kLength
-    real(dp),allocatable,intent(out)::weight(:,:,:),CxVals(:,:,:),CyVals(:,:,:)
-    integer,allocatable,intent(out)::triadFlag(:,:,:),outsideCutCell(:,:,:),insideCutCell(:,:,:),Q11(:,:,:,:)
-    integer :: rank,ierr,ios
+    real(dp),intent(out)::weight(:,:,:),CxVals(:,:,:),CyVals(:,:,:)
+    integer,intent(out)::triadFlag(:,:,:),outsideCutCell(:,:,:),insideCutCell(:,:,:),Q11(:,:,:,:)
+    integer :: rank,ierr,ios,kLength_file
     character(len=64)::fname,dirname
     character(len=64) :: bfstr
 
@@ -98,13 +102,16 @@ fname = trim(dirname)//'/weightStuff.bin'
     call MPI_Abort(MPI_COMM_WORLD, 1, ierr)
     stop
 end if
-        read(10)kLength
+        read(10)kLength_file
+        if (kLength_file /= KLENGTH_PARAM) then
+            print *, 'ERROR: File kLength=', kLength_file, ' does not match compiled KLENGTH_PARAM=', KLENGTH_PARAM
+            stop 'kLength mismatch in weightStuff - recompile with correct kLength'
+        end if
+        kLength = KLENGTH_PARAM
      end if
     call MPI_Bcast(kLength,1,MPI_INTEGER,0,comm,ierr)
 
-    allocate(weight(kLength,kLength,kLength),triadFlag(kLength,kLength,kLength))
-    allocate(outsideCutCell(kLength,kLength,kLength),insideCutCell(kLength,kLength,kLength))
-    allocate(CxVals(kLength,kLength,kLength),CyVals(kLength,kLength,kLength),Q11(2,kLength,kLength,kLength))
+    ! Arrays are fixed-size, no allocation needed
 
     if(rank==0)then
         read(10) weight
@@ -146,7 +153,6 @@ subroutine load_ETDRKcoeffs_binary_named( bf, kLength,  &
 
     use mpi
     implicit none
-    integer, parameter :: dp = 8
 
     ! Inputs
     real(dp), intent(in) :: bf
@@ -155,7 +161,7 @@ subroutine load_ETDRKcoeffs_binary_named( bf, kLength,  &
     ! Outputs
     integer, intent(out) :: kLength
 
-    real(dp), allocatable, intent(out) :: &
+    real(dp), intent(out) :: &
         EX1_1(:),EX2_1(:),Q_1(:),f1_1(:),f2_1(:),f3_1(:), &
         EX1_2(:),EX2_2(:),Q_2(:),f1_2(:),f2_2(:),f3_2(:), &
         EX1_3(:),EX2_3(:),Q_3(:),f1_3(:),f2_3(:),f3_3(:), &
@@ -164,7 +170,7 @@ subroutine load_ETDRKcoeffs_binary_named( bf, kLength,  &
         EX1_6(:),EX2_6(:),Q_6(:),f1_6(:),f2_6(:),f3_6(:)
 
     ! Locals
-    integer :: rank, ierr, ios
+    integer :: rank, ierr, ios, kLength_file
     character(len=64)  :: bfstr
     character(len=256) :: dirname, fname
 
@@ -189,17 +195,19 @@ subroutine load_ETDRKcoeffs_binary_named( bf, kLength,  &
             stop "Error opening ETDRKcoeffs.bin"
         end if
 
-        ! First element: kLength
-        read(10) kLength
+        ! First element: kLength - verify it matches compiled value
+        read(10) kLength_file
+        if (kLength_file /= KLENGTH_PARAM) then
+            print *, 'ERROR: File kLength=', kLength_file, ' does not match compiled KLENGTH_PARAM=', KLENGTH_PARAM
+            stop 'kLength mismatch in ETDRKcoeffs - recompile with correct kLength'
+        end if
+        kLength = KLENGTH_PARAM
     end if
 
     ! Broadcast kLength
     call MPI_Bcast(kLength,1,MPI_INTEGER,0,comm,ierr)
 
-    !-------------------------
-    ! Allocate all arrays
-    !-------------------------
-    call alloc_all()
+    ! Arrays are fixed-size, no allocation needed
 
     !-------------------------
     ! Read all 36 arrays (rank 0)
@@ -221,17 +229,6 @@ subroutine load_ETDRKcoeffs_binary_named( bf, kLength,  &
     call bcast_all()
 
 contains
-
-    !==============================
-    subroutine alloc_all()
-    !==============================
-        allocate(EX1_1(kLength),EX2_1(kLength),Q_1(kLength),f1_1(kLength),f2_1(kLength),f3_1(kLength))
-        allocate(EX1_2(kLength),EX2_2(kLength),Q_2(kLength),f1_2(kLength),f2_2(kLength),f3_2(kLength))
-        allocate(EX1_3(kLength),EX2_3(kLength),Q_3(kLength),f1_3(kLength),f2_3(kLength),f3_3(kLength))
-        allocate(EX1_4(kLength),EX2_4(kLength),Q_4(kLength),f1_4(kLength),f2_4(kLength),f3_4(kLength))
-        allocate(EX1_5(kLength),EX2_5(kLength),Q_5(kLength),f1_5(kLength),f2_5(kLength),f3_5(kLength))
-        allocate(EX1_6(kLength),EX2_6(kLength),Q_6(kLength),f1_6(kLength),f2_6(kLength),f3_6(kLength))
-    end subroutine alloc_all
 
     !==============================
     subroutine rd(a)
@@ -274,17 +271,16 @@ subroutine load_mat_files(bf, kLength, kVals, v_1,v_2,v_3,v_4,v_5,v_6, t, tStar,
                           EX1_6,EX2_6,Q_6,f1_6,f2_6,f3_6,ExtForcing)
   use mpi
   implicit none
-  integer, parameter :: dp = 8
   real(dp), intent(in) :: bf
-  integer :: comm, ierr, rank
+  integer :: comm, ierr, rank, kLength_file
   integer, intent(out) :: kLength, counter
   real(dp), intent(out) :: t, tStar
   ! arrays
-  real(dp), allocatable, intent(out) :: kVals(:)
-  real(dp), allocatable, intent(out) :: v_1(:),v_2(:),v_3(:),v_4(:),v_5(:),v_6(:)
-  real(dp), allocatable, intent(out) :: weight(:,:,:),CxVals(:,:,:),CyVals(:,:,:)
-  integer, allocatable, intent(out) :: triadFlag(:,:,:),outsideCutCell(:,:,:),insideCutCell(:,:,:),Q11(:,:,:,:)
-  real(dp), allocatable, intent(out) :: &
+  real(dp), intent(out) :: kVals(:)
+  real(dp), intent(out) :: v_1(:),v_2(:),v_3(:),v_4(:),v_5(:),v_6(:)
+  real(dp), intent(out) :: weight(:,:,:),CxVals(:,:,:),CyVals(:,:,:)
+  integer, intent(out) :: triadFlag(:,:,:),outsideCutCell(:,:,:),insideCutCell(:,:,:),Q11(:,:,:,:)
+  real(dp), intent(out) :: &
       EX1_1(:),EX2_1(:),Q_1(:),f1_1(:),f2_1(:),f3_1(:), &
       EX1_2(:),EX2_2(:),Q_2(:),f1_2(:),f2_2(:),f3_2(:), &
       EX1_3(:),EX2_3(:),Q_3(:),f1_3(:),f2_3(:),f3_3(:), &
@@ -332,14 +328,17 @@ f_kvals = trim(dirname)//'/kVals.bin'
      open(11,file=f_kvals,form='unformatted',access='stream',status='old',iostat=ios)
      if(ios/=0) print *, f_kvals
      if(ios/=0) stop 'Error opening kVals.bin'
-     read(11) kLength
-     allocate(kVals(kLength))
+     read(11) kLength_file
+     if (kLength_file /= KLENGTH_PARAM) then
+         print *, 'ERROR: File kLength=', kLength_file, ' does not match compiled KLENGTH_PARAM=', KLENGTH_PARAM
+         stop 'kLength mismatch in kVals - recompile with correct kLength'
+     end if
+     kLength = KLENGTH_PARAM
      read(11) kVals
      close(11)
   end if
 
   call MPI_Bcast(kLength,1,MPI_INTEGER,0,comm,ierr)
-  if(rank/=0) allocate(kVals(kLength))
   call MPI_Bcast(kVals,kLength,MPI_DOUBLE_PRECISION,0,comm,ierr)
 
   if(rank==0) print *,'Loaded .bin files for bf=',bf,' kLength=',kLength
@@ -360,14 +359,11 @@ f_EF = trim(dirname)//'/ExtForcing.bin'
      open(11,file=f_EF,form='unformatted',access='stream',status='old',iostat=ios)
      if(ios/=0) print *, f_EF
      if(ios/=0) stop 'Error opening ExtForcing.bin'
-     !read(11) ExtForcing
-     allocate(ExtForcing(kLength))
+     ! Arrays are fixed-size, no allocation needed
      read(11) ExtForcing
      close(11)
   end if
 
-
-  if(rank/=0) allocate(ExtForcing(kLength))
   call MPI_Bcast(ExtForcing,kLength,MPI_DOUBLE_PRECISION,0,comm,ierr)
 
   if(rank==0) print *,'Loaded .bin files for bf=',bf,' kLength=',kLength
