@@ -73,7 +73,10 @@ contains
     real(dp) :: Nc_1(KLENGTH_PARAM),Nc_2(KLENGTH_PARAM),Nc_3(KLENGTH_PARAM),Nc_4(KLENGTH_PARAM),Nc_5(KLENGTH_PARAM),Nc_6(KLENGTH_PARAM)
     real(dp) :: a_1(KLENGTH_PARAM),a_2(KLENGTH_PARAM),a_3(KLENGTH_PARAM),a_4(KLENGTH_PARAM),a_5(KLENGTH_PARAM),a_6(KLENGTH_PARAM)
     real(dp) :: c_1(KLENGTH_PARAM),c_2(KLENGTH_PARAM),c_3(KLENGTH_PARAM),c_4(KLENGTH_PARAM),c_5(KLENGTH_PARAM),c_6(KLENGTH_PARAM)
-    real(dp) :: localN1(KLENGTH_PARAM),localN2(KLENGTH_PARAM),localN3(KLENGTH_PARAM),localN4(KLENGTH_PARAM),localN5(KLENGTH_PARAM),localN6(KLENGTH_PARAM)
+
+    ! Local arrays - fixed size, use only first local_kLength elements
+    real(dp) :: localN1(KLENGTH_PARAM),localN2(KLENGTH_PARAM),localN3(KLENGTH_PARAM)
+    real(dp) :: localN4(KLENGTH_PARAM),localN5(KLENGTH_PARAM),localN6(KLENGTH_PARAM)
     real(dp) :: forcing(6)
 
     ! diagnostics
@@ -121,7 +124,9 @@ contains
        local_kStart  = remainder * (local_kLength + 1) + (rank - remainder) * local_kLength + 1
     end if
     local_kEnd = local_kStart + local_kLength - 1
-    ! Arrays are fixed-size, no allocation needed
+
+    ! No allocation needed - local arrays are fixed size, we use only first local_kLength elements
+
     call MPI_Gather(local_kLength,1,MPI_INTEGER,recvcounts,1,MPI_INTEGER,root,comm,ierr)
     if (rank==root) then
        displs(1)=0
@@ -173,8 +178,9 @@ contains
           localN1(kj)=forcing(1); localN2(kj)=forcing(2); localN3(kj)=forcing(3)
           localN4(kj)=forcing(4); localN5(kj)=forcing(5); localN6(kj)=forcing(6)
        end do
-       call gatherv6(localN1,localN2,localN3,localN4,localN5,localN6, Nv_1,Nv_2,Nv_3,Nv_4,Nv_5,Nv_6, &
-            recvcounts, displs, comm)
+       call gatherv6(localN1(1:local_kLength),localN2(1:local_kLength),localN3(1:local_kLength), &
+                     localN4(1:local_kLength),localN5(1:local_kLength),localN6(1:local_kLength), &
+                     Nv_1,Nv_2,Nv_3,Nv_4,Nv_5,Nv_6, recvcounts, displs, comm)
        call MPI_Barrier(comm, ierr)
        if (any(Nv_1 /= Nv_1)) then
           print *, "NaN detected in Nv_1; first index = ", minloc(Nv_1, MASK=(Nv_1 /= Nv_1))
@@ -238,8 +244,9 @@ contains
           localN1(kj)=forcing(1); localN2(kj)=forcing(2); localN3(kj)=forcing(3)
           localN4(kj)=forcing(4); localN5(kj)=forcing(5); localN6(kj)=forcing(6)
        end do
-       call gatherv6(localN1,localN2,localN3,localN4,localN5,localN6, Na_1,Na_2,Na_3,Na_4,Na_5,Na_6, &
-            recvcounts, displs, comm)
+       call gatherv6(localN1(1:local_kLength),localN2(1:local_kLength),localN3(1:local_kLength), &
+                     localN4(1:local_kLength),localN5(1:local_kLength),localN6(1:local_kLength), &
+                     Na_1,Na_2,Na_3,Na_4,Na_5,Na_6, recvcounts, displs, comm)
        call MPI_Barrier(comm, ierr)
        !========= COMPUTE b_1, b_2...
        Enew     = EX2_1*v_1 + Q_1*Na_1
@@ -265,8 +272,9 @@ contains
           localN1(kj)=forcing(1); localN2(kj)=forcing(2); localN3(kj)=forcing(3)
           localN4(kj)=forcing(4); localN5(kj)=forcing(5); localN6(kj)=forcing(6)
        end do
-       call gatherv6(localN1,localN2,localN3,localN4,localN5,localN6, Nb_1,Nb_2,Nb_3,Nb_4,Nb_5,Nb_6, &
-            recvcounts, displs, comm)
+       call gatherv6(localN1(1:local_kLength),localN2(1:local_kLength),localN3(1:local_kLength), &
+                     localN4(1:local_kLength),localN5(1:local_kLength),localN6(1:local_kLength), &
+                     Nb_1,Nb_2,Nb_3,Nb_4,Nb_5,Nb_6, recvcounts, displs, comm)
        call MPI_Barrier(comm, ierr)
 
        !======== COMPUTE c_1...c_6 prestate
@@ -299,8 +307,9 @@ contains
           localN1(kj)=forcing(1); localN2(kj)=forcing(2); localN3(kj)=forcing(3)
           localN4(kj)=forcing(4); localN5(kj)=forcing(5); localN6(kj)=forcing(6)
        end do
-       call gatherv6(localN1,localN2,localN3,localN4,localN5,localN6, Nc_1,Nc_2,Nc_3,Nc_4,Nc_5,Nc_6, &
-            recvcounts, displs, comm)
+       call gatherv6(localN1(1:local_kLength),localN2(1:local_kLength),localN3(1:local_kLength), &
+                     localN4(1:local_kLength),localN5(1:local_kLength),localN6(1:local_kLength), &
+                     Nc_1,Nc_2,Nc_3,Nc_4,Nc_5,Nc_6, recvcounts, displs, comm)
        call MPI_Barrier(comm, ierr)
 
        !---------- Full ETDRK update on root ----------
@@ -365,7 +374,7 @@ contains
     end do
 
     !==================== cleanup ====================
-    ! Arrays are fixed-size, no deallocation needed
+    ! No deallocation needed - all arrays are fixed size
 
   contains
     subroutine bcast_state(HPOL,HDIR,HT,E,F,ET,mu1,mu3,tval,comm_)
